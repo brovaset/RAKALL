@@ -1,0 +1,274 @@
+.reminder-list {
+  background: linear-gradient(145deg, #2a2a2a 0%, #1f1f1f 100%);
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(255, 107, 53, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 107, 53, 0.2);
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.reminder-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.reminder-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.reminder-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 107, 53, 0.5);
+  border-radius: 4px;
+}
+
+.reminder-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 107, 53, 0.7);
+}
+
+.reminder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.reminder-header h2 {
+  color: #ff6b35;
+  margin: 0;
+  text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-buttons button {
+  padding: 8px 16px;
+  border: 2px solid rgba(255, 107, 53, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  color: #a0a0a0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.filter-buttons button:hover {
+  border-color: #ff6b35;
+  color: #ff6b35;
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+}
+
+.filter-buttons button.active {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  color: white;
+  border-color: #ff6b35;
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+  text-shadow: 0 0 10px rgba(255, 107, 53, 0.2);
+}
+
+.reminders-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.reminder-card {
+  border: 2px solid rgba(255, 107, 53, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.reminder-card:hover {
+  box-shadow: 
+    0 4px 20px rgba(255, 107, 53, 0.3),
+    0 0 30px rgba(255, 107, 53, 0.1);
+  transform: translateY(-2px);
+  border-color: rgba(255, 107, 53, 0.4);
+}
+
+.reminder-card.today {
+  border-color: #ff6b35;
+  background: rgba(255, 107, 53, 0.15);
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
+}
+
+.reminder-card.tomorrow {
+  border-color: #ff8c42;
+  background: rgba(255, 140, 66, 0.1);
+  box-shadow: 0 0 15px rgba(255, 140, 66, 0.2);
+}
+
+.reminder-card.past {
+  border-color: #666;
+  opacity: 0.5;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.reminder-card.completed {
+  opacity: 0.4;
+  background: rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 107, 53, 0.1);
+}
+
+.reminder-image {
+  width: 100%;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.reminder-image img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+}
+
+.reminder-content {
+  position: relative;
+}
+
+.reminder-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.reminder-header-row h3 {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 1.3rem;
+  flex: 1;
+  text-shadow: 0 0 5px rgba(255, 107, 53, 0.3);
+}
+
+.strikethrough {
+  text-decoration: line-through;
+  color: #999 !important;
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 5px;
+  opacity: 0.6;
+  transition: opacity 0.3s;
+}
+
+.delete-button:hover {
+  opacity: 1;
+}
+
+.reminder-date-time {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.date-label {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.time-label {
+  background: rgba(255, 107, 53, 0.2);
+  color: #ffa366;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+.reminder-description {
+  color: #b0b0b0;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.reminder-amount {
+  background: rgba(255, 107, 53, 0.2);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  color: #ffa366;
+  font-size: 14px;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.2);
+}
+
+.deadline-info {
+  background: rgba(255, 107, 53, 0.25);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  color: #ffa366;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border: 1px solid rgba(255, 107, 53, 0.4);
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+}
+
+.deadline-note {
+  font-size: 12px;
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.reminder-actions {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #a0a0a0;
+  transition: color 0.3s;
+}
+
+.checkbox-label:hover {
+  color: #ffa366;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
