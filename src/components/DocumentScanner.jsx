@@ -678,7 +678,7 @@ function DocumentScanner({ onReminderCreated }) {
                           <div className="suggestion-content">
                             <h4>{task.title}</h4>
                             <div className="suggestion-meta">
-                              <span className="suggestion-date">📅 {task.date}</span>
+                              <span className="suggestion-date"><img src="/logo.png" alt="Logo" className="inline-logo" /> {task.date}</span>
                               {task.time && <span className="suggestion-time">🕐 {task.time}</span>}
                               <span className="confidence-badge" style={{
                                 background: (task.confidence || 0.7) > 0.8 ? 'rgba(16, 185, 129, 0.2)' : 

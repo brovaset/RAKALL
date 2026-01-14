@@ -1,12 +1,14 @@
 .reminder-list {
-  background: linear-gradient(145deg, #2a2a2a 0%, #1f1f1f 100%);
+  background: rgba(26, 77, 122, 0.4);
+  backdrop-filter: blur(20px);
   border-radius: 16px;
   padding: 30px;
   box-shadow: 
     0 10px 40px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(255, 107, 53, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 107, 53, 0.2);
+    0 0 20px rgba(26, 77, 122, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -1px 0 rgba(107, 70, 193, 0.2);
+  border: 2px solid rgba(59, 111, 168, 0.6);
   max-height: 80vh;
   overflow-y: auto;
   position: relative;
@@ -22,12 +24,12 @@
 }
 
 .reminder-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 107, 53, 0.5);
+  background: rgba(26, 77, 122, 0.6);
   border-radius: 4px;
 }
 
 .reminder-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 107, 53, 0.7);
+  background: rgba(59, 111, 168, 0.8);
 }
 
 .reminder-header {
@@ -40,9 +42,9 @@
 }
 
 .reminder-header h2 {
-  color: #ff6b35;
+  color: #ffffff;
   margin: 0;
-  text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+  text-shadow: 0 0 10px rgba(26, 77, 122, 0.8), 0 0 5px rgba(59, 111, 168, 0.6), 2px 2px 4px rgba(0, 0, 0, 0.5);
   font-weight: 600;
   letter-spacing: 1px;
 }
@@ -54,24 +56,26 @@
 
 .filter-buttons button {
   padding: 8px 16px;
-  border: 2px solid rgba(255, 107, 53, 0.3);
-  background: rgba(0, 0, 0, 0.3);
-  color: #a0a0a0;
+  border: 2px solid rgba(59, 111, 168, 0.6);
+  background: rgba(26, 77, 122, 0.4);
+  backdrop-filter: blur(10px);
+  color: #ffffff;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s;
   font-size: 14px;
   font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .filter-buttons button:hover {
-  border-color: #ff6b35;
-  color: #ff6b35;
-  box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+  border-color: #3b6fa8;
+  color: #3b6fa8;
+  box-shadow: 0 0 10px rgba(59, 111, 168, 0.3);
 }
 
 .filter-buttons button.active {
-  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  background: linear-gradient(135deg, #ff6b35 0%, #ffd700 100%);
   color: white;
   border-color: #ff6b35;
   box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
@@ -80,8 +84,8 @@
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #888;
-  text-shadow: 0 0 10px rgba(255, 107, 53, 0.2);
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(255, 107, 53, 0.4), 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .reminders-container {
@@ -91,20 +95,20 @@
 }
 
 .reminder-card {
-  border: 2px solid rgba(255, 107, 53, 0.2);
+  border: 2px solid rgba(59, 111, 168, 0.6);
   border-radius: 12px;
   padding: 20px;
   transition: all 0.3s;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(26, 77, 122, 0.3);
   backdrop-filter: blur(10px);
 }
 
 .reminder-card:hover {
   box-shadow: 
-    0 4px 20px rgba(255, 107, 53, 0.3),
-    0 0 30px rgba(255, 107, 53, 0.1);
+    0 4px 20px rgba(59, 111, 168, 0.3),
+    0 0 30px rgba(107, 70, 193, 0.2);
   transform: translateY(-2px);
-  border-color: rgba(255, 107, 53, 0.4);
+  border-color: rgba(59, 111, 168, 0.5);
 }
 
 .reminder-card.today {
@@ -114,9 +118,9 @@
 }
 
 .reminder-card.tomorrow {
-  border-color: #ff8c42;
-  background: rgba(255, 140, 66, 0.1);
-  box-shadow: 0 0 15px rgba(255, 140, 66, 0.2);
+  border-color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
 }
 
 .reminder-card.past {
@@ -157,10 +161,10 @@
 
 .reminder-header-row h3 {
   margin: 0;
-  color: #e0e0e0;
+  color: #ffffff;
   font-size: 1.3rem;
   flex: 1;
-  text-shadow: 0 0 5px rgba(255, 107, 53, 0.3);
+  text-shadow: 0 0 5px rgba(255, 107, 53, 0.4), 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .strikethrough {
@@ -190,7 +194,7 @@
 }
 
 .date-label {
-  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  background: linear-gradient(135deg, #ff6b35 0%, #ffd700 100%);
   color: white;
   padding: 6px 12px;
   border-radius: 6px;
@@ -201,44 +205,54 @@
 }
 
 .time-label {
-  background: rgba(255, 107, 53, 0.2);
-  color: #ffa366;
+  background: rgba(59, 111, 168, 0.2);
+  color: #7db3e8;
   padding: 6px 12px;
   border-radius: 6px;
   font-size: 14px;
-  border: 1px solid rgba(255, 107, 53, 0.3);
+  border: 1px solid rgba(59, 111, 168, 0.3);
 }
 
 .reminder-description {
-  color: #b0b0b0;
+  color: #ffffff;
   margin-bottom: 12px;
   line-height: 1.5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .reminder-amount {
-  background: rgba(255, 107, 53, 0.2);
+  background: rgba(59, 111, 168, 0.2);
   padding: 8px 12px;
   border-radius: 6px;
   margin-bottom: 12px;
-  color: #ffa366;
+  color: #7db3e8;
   font-size: 14px;
-  border: 1px solid rgba(255, 107, 53, 0.3);
-  box-shadow: 0 0 10px rgba(255, 107, 53, 0.2);
+  border: 1px solid rgba(59, 111, 168, 0.3);
+  box-shadow: 0 0 10px rgba(59, 111, 168, 0.2);
+}
+
+.inline-logo {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 4px;
+  object-fit: contain;
 }
 
 .deadline-info {
-  background: rgba(255, 107, 53, 0.25);
+  background: rgba(26, 77, 122, 0.25);
   padding: 8px 12px;
   border-radius: 6px;
   margin-bottom: 12px;
-  color: #ffa366;
+  color: #7db3e8;
   font-size: 14px;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  border: 1px solid rgba(255, 107, 53, 0.4);
-  box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+  border: 1px solid rgba(59, 111, 168, 0.4);
+  box-shadow: 0 0 10px rgba(26, 77, 122, 0.3);
 }
 
 .deadline-note {
@@ -264,7 +278,7 @@
 }
 
 .checkbox-label:hover {
-  color: #ffa366;
+  color: #7db3e8;
 }
 
 .checkbox-label input[type="checkbox"] {

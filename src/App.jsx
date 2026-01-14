@@ -41,7 +41,8 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>📅 RAKALL</h1>
+        <img src="/logo.png" alt="RAKALL Logo" className="app-logo" />
+        <h1>RAKALL</h1>
         <p>AI-Powered Reminder App</p>
       </header>
       
