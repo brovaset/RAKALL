@@ -27,12 +27,56 @@
   100% { transform: translateX(100%); }
 }
 
+.scanner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
 .document-scanner h2 {
-  margin-bottom: 20px;
+  margin: 0;
   color: #ff6b35;
   text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
   font-weight: 600;
   letter-spacing: 1px;
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 107, 53, 0.2);
+}
+
+.tab-buttons button {
+  padding: 10px 20px;
+  background: transparent;
+  color: #a0a0a0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  letter-spacing: 0.5px;
+}
+
+.tab-buttons button:hover {
+  color: #ffa366;
+  background: rgba(255, 107, 53, 0.1);
+}
+
+.tab-buttons button.active {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  color: white;
+  box-shadow: 
+    0 2px 10px rgba(255, 107, 53, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .upload-section {
@@ -371,6 +415,20 @@
   color: #888;
 }
 
+.form-input select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ff6b35' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 40px;
+}
+
+.form-input option {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
 .create-button {
   width: 100%;
   padding: 15px;
@@ -417,4 +475,335 @@
   font-size: 12px;
   color: #a0a0a0;
   font-style: italic;
+}
+
+/* Text Scanner Styles */
+.text-input-section {
+  margin-bottom: 25px;
+}
+
+.text-input {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid rgba(255, 107, 53, 0.3);
+  border-radius: 8px;
+  font-size: 16px;
+  transition: all 0.3s;
+  background: rgba(0, 0, 0, 0.3);
+  color: #e0e0e0;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 150px;
+  margin-bottom: 15px;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #ff6b35;
+  box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.text-input::placeholder {
+  color: #666;
+}
+
+.extract-button {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 1px solid rgba(255, 107, 53, 0.5);
+  box-shadow: 
+    0 4px 15px rgba(255, 107, 53, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.5px;
+}
+
+.extract-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ff8c42 0%, #ffa366 100%);
+  box-shadow: 
+    0 6px 25px rgba(255, 107, 53, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.extract-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.suggestions-section {
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 2px solid rgba(255, 107, 53, 0.2);
+}
+
+.suggestions-section h3 {
+  color: #ff6b35;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+}
+
+.suggestions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.suggestion-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 2px solid rgba(255, 107, 53, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s;
+}
+
+.suggestion-card:hover {
+  border-color: rgba(255, 107, 53, 0.4);
+  box-shadow: 0 4px 20px rgba(255, 107, 53, 0.2);
+  transform: translateY(-2px);
+}
+
+.suggestion-header {
+  margin-bottom: 15px;
+}
+
+.suggestion-content h4 {
+  color: #e0e0e0;
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  text-shadow: 0 0 5px rgba(255, 107, 53, 0.3);
+}
+
+.suggestion-meta {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.suggestion-date,
+.suggestion-time {
+  background: rgba(255, 107, 53, 0.2);
+  color: #ffa366;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+.confidence-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid currentColor;
+}
+
+.suggestion-description {
+  color: #b0b0b0;
+  margin: 10px 0;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.suggestion-source {
+  color: #666;
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 107, 53, 0.1);
+}
+
+.suggestion-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 107, 53, 0.1);
+}
+
+.edit-button,
+.reject-button,
+.approve-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  letter-spacing: 0.5px;
+}
+
+.edit-button {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.edit-button:hover {
+  background: rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.reject-button {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.reject-button:hover {
+  background: rgba(239, 68, 68, 0.3);
+  transform: translateY(-2px);
+}
+
+.approve-button {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+}
+
+.approve-button:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.5);
+  transform: translateY(-2px);
+}
+
+.task-editor {
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+.editor-field {
+  margin-bottom: 15px;
+}
+
+.editor-field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #ffa366;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.editor-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.editor-input {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid rgba(255, 107, 53, 0.3);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  color: #e0e0e0;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.editor-input:focus {
+  outline: none;
+  border-color: #ff6b35;
+  box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+}
+
+.editor-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+.cancel-button,
+.save-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.cancel-button {
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.cancel-button:hover {
+  background: rgba(107, 114, 128, 0.3);
+}
+
+.save-button {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  color: white;
+  border: 1px solid rgba(255, 107, 53, 0.5);
+}
+
+.save-button:hover {
+  background: linear-gradient(135deg, #ff8c42 0%, #ffa366 100%);
+  transform: translateY(-2px);
+}
+
+.clear-button {
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(107, 114, 128, 0.2);
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.clear-button:hover {
+  background: rgba(107, 114, 128, 0.3);
+  transform: translateY(-2px);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #ff6b35;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
