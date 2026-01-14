@@ -45,6 +45,8 @@ function DocumentScanner({ onReminderCreated }) {
   const [error, setError] = useState(null)
   const [autoCreate, setAutoCreate] = useState(true)
   const [successMessage, setSuccessMessage] = useState(null)
+  const [suggestedTasksFromDoc, setSuggestedTasksFromDoc] = useState([])
+  const [expandedDocTask, setExpandedDocTask] = useState(null)
   
   // Text scanner states
   const [text, setText] = useState('')
@@ -107,26 +109,52 @@ function DocumentScanner({ onReminderCreated }) {
       
       setExtractedInfo(info)
       
-      if (info.billName) {
-        setReminderTitle(`Pay ${info.billName}`)
-      }
-      
-      if (info.deadlineDate) {
-        setDeadlineDate(info.deadlineDate)
-        const calculatedReminderDate = calculateReminderDate(info.deadlineDate, reminderPeriod)
-        setReminderDate(calculatedReminderDate)
-      }
-      
-      if (info.time) {
-        setReminderTime(info.time)
+      // Handle new tasks array format
+      if (info.tasks && info.tasks.length > 0) {
+        // Convert tasks to suggested reminders format
+        const suggestedTasks = info.tasks.map(task => ({
+          title: task.title,
+          date: task.date,
+          time: task.time || null,
+          description: task.description || '',
+          confidence: task.confidence || 0.8,
+          type: task.type || 'task',
+          amount: task.amount || null,
+          sourceText: `Extracted from document`,
+          fromDocument: true
+        }))
+        setSuggestedTasksFromDoc(suggestedTasks)
+        
+        // Don't auto-create if there are multiple tasks - let user review them
+        // Auto-create only if there's exactly one high-confidence task and auto-create is enabled
+        if (autoCreate && suggestedTasks.length === 1 && (suggestedTasks[0].confidence || 0.8) > 0.85) {
+          setTimeout(() => {
+            handleApproveDocTask(suggestedTasks[0], 0)
+          }, 500)
+        }
       } else {
-        setReminderTime('09:00')
-      }
-      
-      if (autoCreate && info.billName && info.deadlineDate) {
-        setTimeout(() => {
-          handleCreateReminderAuto(info)
-        }, 500)
+        // Legacy format - handle bill info
+        if (info.billName) {
+          setReminderTitle(`Pay ${info.billName}`)
+        }
+        
+        if (info.deadlineDate) {
+          setDeadlineDate(info.deadlineDate)
+          const calculatedReminderDate = calculateReminderDate(info.deadlineDate, reminderPeriod)
+          setReminderDate(calculatedReminderDate)
+        }
+        
+        if (info.time) {
+          setReminderTime(info.time)
+        } else {
+          setReminderTime('09:00')
+        }
+        
+        if (autoCreate && info.billName && info.deadlineDate) {
+          setTimeout(() => {
+            handleCreateReminderAuto(info)
+          }, 500)
+        }
       }
     } catch (err) {
       setError(err.message || 'Failed to process document')
@@ -188,6 +216,8 @@ function DocumentScanner({ onReminderCreated }) {
     setReminderTime('')
     setReminderPeriod('1 day')
     setError(null)
+    setSuggestedTasksFromDoc([])
+    setExpandedDocTask(null)
     
     const fileInput = document.getElementById('file-input')
     if (fileInput) fileInput.value = ''
@@ -236,12 +266,49 @@ function DocumentScanner({ onReminderCreated }) {
       description: task.description,
       reminderPeriod: '1 day',
       isSuggested: true,
-      confidence: task.confidence
+      confidence: task.confidence,
+      documentPreview: task.fromDocument ? preview : null
     }
 
     onReminderCreated(reminder)
     setSuggestedTasks(suggestedTasks.filter((_, i) => i !== index))
     showSuccessNotification('✅ Reminder added!')
+  }
+
+  const handleApproveDocTask = (task, index) => {
+    const reminder = {
+      title: task.title,
+      date: task.date,
+      time: task.time || '09:00',
+      description: task.description,
+      reminderPeriod: '1 day',
+      isSuggested: true,
+      confidence: task.confidence || 0.8,
+      documentPreview: preview,
+      extractedInfo: {
+        type: task.type,
+        amount: task.amount
+      }
+    }
+
+    onReminderCreated(reminder)
+    setSuggestedTasksFromDoc(suggestedTasksFromDoc.filter((_, i) => i !== index))
+    showSuccessNotification('✅ Reminder added!')
+  }
+
+  const handleRejectDocTask = (index) => {
+    setSuggestedTasksFromDoc(suggestedTasksFromDoc.filter((_, i) => i !== index))
+  }
+
+  const handleEditDocTask = (task, index) => {
+    setExpandedDocTask(expandedDocTask === index ? null : index)
+  }
+
+  const handleSaveEditDocTask = (index, editedTask) => {
+    const updated = [...suggestedTasksFromDoc]
+    updated[index] = { ...updated[index], ...editedTask }
+    setSuggestedTasksFromDoc(updated)
+    setExpandedDocTask(null)
   }
 
   const handleRejectTask = (index) => {
@@ -517,19 +584,28 @@ function DocumentScanner({ onReminderCreated }) {
           {extractedInfo && (
             <div className="extracted-info">
               <h3>Extracted Information:</h3>
-              <div className="info-item">
-                <strong>Bill Name:</strong> {extractedInfo.billName || 'Not found'}
-              </div>
-              <div className="info-item">
-                <strong>Deadline Date:</strong> {extractedInfo.deadlineDate || 'Not found'}
-              </div>
-              <div className="info-item highlight">
-                <strong>⏰ Reminder Date ({reminderPeriod} before):</strong> {reminderDate || 'Calculating...'}
-              </div>
-              <div className="info-item">
-                <strong>Amount:</strong> {extractedInfo.amount || 'Not found'}
-              </div>
-              {extractedInfo.description && (
+              {extractedInfo.billName && (
+                <>
+                  <div className="info-item">
+                    <strong>Bill Name:</strong> {extractedInfo.billName}
+                  </div>
+                  <div className="info-item">
+                    <strong>Deadline Date:</strong> {extractedInfo.deadlineDate || 'Not found'}
+                  </div>
+                  <div className="info-item highlight">
+                    <strong>⏰ Reminder Date ({reminderPeriod} before):</strong> {reminderDate || 'Calculating...'}
+                  </div>
+                  <div className="info-item">
+                    <strong>Amount:</strong> {extractedInfo.amount || 'Not found'}
+                  </div>
+                  {extractedInfo.description && (
+                    <div className="info-item">
+                      <strong>Description:</strong> {extractedInfo.description}
+                    </div>
+                  )}
+                </>
+              )}
+              {!extractedInfo.billName && extractedInfo.description && (
                 <div className="info-item">
                   <strong>Description:</strong> {extractedInfo.description}
                 </div>
@@ -537,19 +613,106 @@ function DocumentScanner({ onReminderCreated }) {
             </div>
           )}
 
-          <div className="reminder-form">
-            <div className="auto-create-toggle">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={autoCreate}
-                  onChange={(e) => setAutoCreate(e.target.checked)}
-                />
-                <span>Auto-create reminder after scanning</span>
-              </label>
+          {suggestedTasksFromDoc.length > 0 && (
+            <div className="suggestions-section">
+              <h3>📋 Suggested Reminders from Document ({suggestedTasksFromDoc.length})</h3>
+              <div className="suggestions-list">
+                {suggestedTasksFromDoc.map((task, index) => (
+                  <div key={index} className="suggestion-card">
+                    {expandedDocTask === index ? (
+                      <TaskEditor
+                        task={task}
+                        onSave={(edited) => handleSaveEditDocTask(index, edited)}
+                        onCancel={() => setExpandedDocTask(null)}
+                      />
+                    ) : (
+                      <>
+                        <div className="suggestion-header">
+                          <div className="suggestion-content">
+                            <h4>{task.title}</h4>
+                            <div className="suggestion-meta">
+                              <span className="suggestion-date"><img src="/logo.png" alt="Logo" className="inline-logo" /> {task.date}</span>
+                              {task.time && <span className="suggestion-time">🕐 {task.time}</span>}
+                              {task.type && (
+                                <span className="task-type-badge" style={{
+                                  background: task.type === 'bill' ? 'rgba(255, 107, 53, 0.3)' : 
+                                             task.type === 'meeting' ? 'rgba(59, 111, 168, 0.3)' : 
+                                             'rgba(107, 70, 193, 0.3)',
+                                  color: '#ffffff',
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '12px',
+                                  fontWeight: '600'
+                                }}>
+                                  {task.type}
+                                </span>
+                              )}
+                              <span className="confidence-badge" style={{
+                                background: (task.confidence || 0.7) > 0.8 ? 'rgba(16, 185, 129, 0.2)' : 
+                                           (task.confidence || 0.7) > 0.6 ? 'rgba(255, 193, 7, 0.2)' : 
+                                           'rgba(239, 68, 68, 0.2)',
+                                color: (task.confidence || 0.7) > 0.8 ? '#10b981' : 
+                                      (task.confidence || 0.7) > 0.6 ? '#fbbf24' : '#ef4444'
+                              }}>
+                                {Math.round((task.confidence || 0.7) * 100)}% confident
+                              </span>
+                            </div>
+                            {task.description && (
+                              <p className="suggestion-description">{task.description}</p>
+                            )}
+                            {task.amount && (
+                              <p className="suggestion-amount">💰 Amount: {task.amount}</p>
+                            )}
+                            {task.sourceText && (
+                              <p className="suggestion-source">Source: {task.sourceText}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="suggestion-actions">
+                          <button
+                            onClick={() => handleEditDocTask(task, index)}
+                            className="edit-button"
+                            title="Edit reminder"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            onClick={() => handleRejectDocTask(index)}
+                            className="reject-button"
+                            title="Dismiss"
+                          >
+                            ✕ Dismiss
+                          </button>
+                          <button
+                            onClick={() => handleApproveDocTask(task, index)}
+                            className="approve-button"
+                            title="Add reminder"
+                          >
+                            ✅ Add Reminder
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
+          )}
 
-            <h3>Create Reminder</h3>
+          {suggestedTasksFromDoc.length === 0 && (
+            <div className="reminder-form">
+              <div className="auto-create-toggle">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={autoCreate}
+                    onChange={(e) => setAutoCreate(e.target.checked)}
+                  />
+                  <span>Auto-create reminder after scanning</span>
+                </label>
+              </div>
+
+              <h3>Create Reminder</h3>
             
             <div className="form-group">
               <label>Title *</label>
@@ -636,6 +799,7 @@ function DocumentScanner({ onReminderCreated }) {
               ✅ Create Reminder
             </button>
           </div>
+          )}
         </>
       )}
 
