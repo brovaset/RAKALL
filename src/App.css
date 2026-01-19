@@ -7,7 +7,7 @@
 
 .app-header {
   text-align: center;
-  color: #1a4d7a;
+  color: #ff6b35;
   margin-bottom: 40px;
   padding: 20px;
   position: relative;
@@ -20,7 +20,7 @@
   height: auto;
   object-fit: contain;
   margin-bottom: 20px;
-  filter: drop-shadow(0 0 20px rgba(26, 77, 122, 0.4)) drop-shadow(0 0 10px rgba(255, 107, 53, 0.3));
+  filter: drop-shadow(0 0 15px rgba(255, 107, 53, 0.3));
   animation: logoFloat 3s ease-in-out infinite;
 }
 
@@ -39,22 +39,21 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 250px;
-  height: 250px;
-  background: radial-gradient(circle, rgba(26, 77, 122, 0.4) 0%, rgba(107, 70, 193, 0.2) 50%, transparent 70%);
-  filter: blur(50px);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.3) 0%, transparent 70%);
+  filter: blur(40px);
   z-index: -1;
 }
 
 .app-header h1 {
   font-size: 3rem;
   margin-bottom: 10px;
-  color: #ffffff;
   text-shadow: 
-    0 0 10px rgba(26, 77, 122, 0.8),
-    0 0 20px rgba(59, 111, 168, 0.6),
-    0 0 30px rgba(107, 70, 193, 0.4),
-    2px 2px 4px rgba(0, 0, 0, 0.9);
+    0 0 10px rgba(255, 107, 53, 0.5),
+    0 0 20px rgba(255, 107, 53, 0.3),
+    0 0 30px rgba(255, 107, 53, 0.2),
+    2px 2px 4px rgba(0, 0, 0, 0.8);
   letter-spacing: 2px;
   font-weight: 700;
   animation: glow 2s ease-in-out infinite alternate;
@@ -63,24 +62,24 @@
 @keyframes glow {
   from {
     text-shadow: 
-      0 0 10px rgba(26, 77, 122, 0.8),
-      0 0 20px rgba(59, 111, 168, 0.6),
-      0 0 30px rgba(107, 70, 193, 0.4),
-      2px 2px 4px rgba(0, 0, 0, 0.9);
+      0 0 10px rgba(255, 107, 53, 0.5),
+      0 0 20px rgba(255, 107, 53, 0.3),
+      0 0 30px rgba(255, 107, 53, 0.2),
+      2px 2px 4px rgba(0, 0, 0, 0.8);
   }
   to {
     text-shadow: 
-      0 0 20px rgba(26, 77, 122, 1),
-      0 0 30px rgba(59, 111, 168, 0.8),
-      0 0 40px rgba(107, 70, 193, 0.6),
-      2px 2px 4px rgba(0, 0, 0, 0.9);
+      0 0 20px rgba(255, 107, 53, 0.8),
+      0 0 30px rgba(255, 107, 53, 0.5),
+      0 0 40px rgba(255, 107, 53, 0.3),
+      2px 2px 4px rgba(0, 0, 0, 0.8);
   }
 }
 
 .app-header p {
   font-size: 1.2rem;
-  color: #b0c4de;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), 0 0 10px rgba(59, 111, 168, 0.3);
+  color: #a0a0a0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   letter-spacing: 1px;
 }
 

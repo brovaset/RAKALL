@@ -110,7 +110,7 @@ function ReminderList({ reminders, onDelete, onUpdate }) {
                   
                   {reminder.deadlineDate && reminder.deadlineDate !== reminder.date && (
                     <div className="deadline-info">
-                      <strong><img src="/logo.png" alt="Logo" className="inline-logo" /> Deadline:</strong> {format(parseISO(reminder.deadlineDate), 'MMM dd, yyyy')}
+                      <strong>📅 Deadline:</strong> {format(parseISO(reminder.deadlineDate), 'MMM dd, yyyy')}
                       <span className="deadline-note">
                         (Reminder set {reminder.reminderPeriod || '1 day'} before)
                       </span>
