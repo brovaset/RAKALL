@@ -5,7 +5,33 @@
  * from unstructured text like emails, notes, or web articles.
  * 
  * Note: Uses the same OpenAI API key as document extraction
- */
+ */// 1. Load the environment variables
+import 'dotenv/config'; 
+import OpenAI from 'openai';
+
+// 2. Initialize the client (it looks for OPENAI_API_KEY by default)
+const openai = new OpenAI();
+
+async function extractTask() {
+  const userPrompt = "Remind me to buy groceries tomorrow at 6pm";
+  
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      { 
+        role: "system", 
+        content: `You are a task extractor. Extract the task and time into JSON. 
+                  Today's date is ${new Date().toISOString()}.` 
+      },
+      { role: "user", content: userPrompt }
+    ],
+    response_format: { type: "json_object" } // Ensures the AI returns valid JSON
+  });
+
+  console.log(response.choices[0].message.content);
+}
+
+extractTask();
 
 export async function extractTasksFromText(text) {
   // Check if OpenAI API key is configured
