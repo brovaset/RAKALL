@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { extractDocumentInfo } from '../services/aiService'
+import { extractDocumentInfo, extractDocumentInfoFromText } from '../services/aiService'
 import { extractTasksFromText } from '../services/textExtractionService'
+import * as pdfjsLib from 'pdfjs-dist'
+import pdfWorker from 'pdfjs-dist/build/pdf.worker?url'
+import mammoth from 'mammoth'
 import './DocumentScanner.css'
 
 // Helper function to calculate reminder date based on period
@@ -102,8 +105,15 @@ function DocumentScanner({ onReminderCreated }) {
     setError(null)
 
     try {
-      const base64 = await fileToBase64(file)
-      const info = await extractDocumentInfo(base64, file.type)
+      let info = null
+
+      if (file.type.startsWith('image/')) {
+        const base64 = await fileToBase64(file)
+        info = await extractDocumentInfo(base64, file.type)
+      } else {
+        const text = await fileToText(file)
+        info = await extractDocumentInfoFromText(text)
+      }
       
       setExtractedInfo(info)
       
@@ -200,6 +210,51 @@ function DocumentScanner({ onReminderCreated }) {
       reader.onload = () => resolve(reader.result.split(',')[1])
       reader.onerror = error => reject(error)
     })
+  }
+
+  const fileToText = (file) => {
+    const extension = file.name.split('.').pop()?.toLowerCase() || ''
+
+    if (file.type === 'application/pdf' || extension === 'pdf') {
+      return pdfToText(file)
+    }
+
+    if (
+      file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      extension === 'docx'
+    ) {
+      return docxToText(file)
+    }
+
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsText(file)
+      reader.onload = () => resolve(reader.result || '')
+      reader.onerror = error => reject(error)
+    })
+  }
+
+  const pdfToText = async (file) => {
+    const arrayBuffer = await file.arrayBuffer()
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+    const maxPages = Math.min(pdf.numPages, 20)
+    const textChunks = []
+
+    for (let pageNum = 1; pageNum <= maxPages; pageNum += 1) {
+      const page = await pdf.getPage(pageNum)
+      const content = await page.getTextContent()
+      const pageText = content.items.map(item => item.str).join(' ')
+      textChunks.push(pageText)
+    }
+
+    return textChunks.join('\n').trim()
+  }
+
+  const docxToText = async (file) => {
+    const arrayBuffer = await file.arrayBuffer()
+    const result = await mammoth.extractRawText({ arrayBuffer })
+    return (result.value || '').trim()
   }
 
   // Text scanner functions
@@ -453,10 +508,10 @@ function DocumentScanner({ onReminderCreated }) {
               <label htmlFor="file-input" className="upload-label">
                 {preview ? '📁 Change File' : '📁 Choose Document'}
               </label>
-              <input
+                    <input
                 id="file-input"
                 type="file"
-                accept="image/*,.pdf"
+                      accept="*/*,.pdf,.docx"
                 onChange={handleFileChange}
                 className="file-input"
               />

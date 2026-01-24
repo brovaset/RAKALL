@@ -24,7 +24,7 @@ A modern reminder application that uses AI to extract information from documents
 1. Clone the repository:
 ```bash
 git clone <your-repo-url>
-cd rakall-repo
+cd RAKALL
 ```
 
 2. Install dependencies:
@@ -71,7 +71,7 @@ npm run dev
 ## Project Structure
 
 ```
-rakall-repo/
+RAKALL/
 ├── src/
 │   ├── components/
 │   │   ├── DocumentScanner.jsx    # Main scanner component (merged document & text)

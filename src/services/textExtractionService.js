@@ -5,94 +5,50 @@
  * from unstructured text like emails, notes, or web articles.
  * 
  * Note: Uses the same OpenAI API key as document extraction
- */// 1. Load the environment variables
-import 'dotenv/config'; 
-import OpenAI from 'openai';
+ */
 
-// 2. Initialize the client (it looks for OPENAI_API_KEY by default)
-const openai = new OpenAI();
-
-async function extractTask() {
-  const userPrompt = "Remind me to buy groceries tomorrow at 6pm";
-  
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { 
-        role: "system", 
-        content: `You are a task extractor. Extract the task and time into JSON. 
-                  Today's date is ${new Date().toISOString()}.` 
-      },
-      { role: "user", content: userPrompt }
-    ],
-    response_format: { type: "json_object" } // Ensures the AI returns valid JSON
-  });
-
-  console.log(response.choices[0].message.content);
-}
-
-extractTask();
+import { getOpenAIClient } from './openaiClient'
 
 export async function extractTasksFromText(text) {
-  // Check if OpenAI API key is configured
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY
-  
-  if (!apiKey) {
-    // Fallback to mock extraction if no API key
-    console.warn('OpenAI API key not found. Using mock extraction.')
-    return mockExtractTasksFromText()
+  const client = getOpenAIClient()
+
+  if (!client) {
+    throw new Error('OpenAI API key not configured. Set VITE_OPENAI_API_KEY in .env and restart the dev server.')
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a task extraction assistant. Analyze the given text and extract actionable tasks, reminders, or commitments. 
-            Identify:
-            1. Intent/Task: What needs to be done (e.g., "Call John", "Pay bill", "Schedule meeting")
-            2. Entities: People, places, or things mentioned
-            3. Dates/Times: When the task should be done (extract relative dates like "Monday", "next week", "tomorrow" and convert to actual dates)
-            4. Context: Any additional relevant information
-            
-            Today's date is ${new Date().toISOString().split('T')[0]}.
-            Return a JSON array of tasks, each with: title, date (YYYY-MM-DD), time (HH:MM or null), description, and confidence (0-1).`
-          },
-          {
-            role: 'user',
-            content: `Extract all tasks and reminders from this text:\n\n${text}`
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 1000
-      })
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a task extraction assistant. Analyze the given text and extract actionable tasks, reminders, or commitments. 
+          Identify:
+          1. Intent/Task: What needs to be done (e.g., "Call John", "Pay bill", "Schedule meeting")
+          2. Entities: People, places, or things mentioned
+          3. Dates/Times: When the task should be done (extract relative dates like "Monday", "next week", "tomorrow" and convert to actual dates)
+          4. Context: Any additional relevant information
+          
+          Today's date is ${new Date().toISOString().split('T')[0]}.
+          Return ONLY valid JSON in this shape:
+          { "tasks": [ { "title": "...", "date": "YYYY-MM-DD", "time": "HH:MM or null", "description": "...", "confidence": 0-1, "entities": [] } ] }`
+        },
+        {
+          role: 'user',
+          content: `Extract all tasks and reminders from this text:\n\n${text}`
+        }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+      max_tokens: 1000
     })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error?.message || 'Failed to process text')
-    }
-
-    const data = await response.json()
-    const content = data.choices[0].message.content
+    const content = response.choices?.[0]?.message?.content || ''
     
     // Try to parse JSON from the response
     try {
-      // Extract JSON from markdown code blocks if present
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || 
-                       content.match(/```\s*([\s\S]*?)\s*```/)
-      const jsonString = jsonMatch ? jsonMatch[1] : content
-      const extracted = JSON.parse(jsonString)
-      
-      // Ensure it's an array
-      const tasks = Array.isArray(extracted) ? extracted : [extracted]
+      const extracted = JSON.parse(content)
+      const tasks = Array.isArray(extracted?.tasks) ? extracted.tasks : []
       
       // Validate and format the response
       return tasks.map(task => ({
@@ -105,13 +61,11 @@ export async function extractTasksFromText(text) {
         sourceText: text.substring(0, 100) // Store snippet of source text
       }))
     } catch (parseError) {
-      // If JSON parsing fails, try to extract information using regex
-      return parseTextForTasks(text)
+      throw new Error('OpenAI response was not valid JSON. Please try again.')
     }
   } catch (error) {
     console.error('Text extraction error:', error)
-    // Fallback to mock extraction on error
-    return mockExtractTasksFromText()
+    throw new Error(error.message || 'Failed to process text')
   }
 }
 

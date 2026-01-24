@@ -1,81 +1,123 @@
 /**
  * AI Service for extracting information from documents
- * 
+ *
  * This service uses OpenAI's GPT-4 Vision API to extract dates, amounts,
  * and other relevant information from uploaded documents.
- * 
+ *
  * Note: You'll need to set up an OpenAI API key in your environment variables.
  * Create a .env file with: VITE_OPENAI_API_KEY=your_api_key_here
  */
 
-export async function extractDocumentInfo(base64Image, mimeType) {
-  // Check if OpenAI API key is configured
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY
-  
-  if (!apiKey) {
-    // Fallback to mock extraction if no API key
-    console.warn('OpenAI API key not found. Using mock extraction.')
-    return mockExtractDocumentInfo()
+import { getOpenAIClient } from './openaiClient'
+
+export async function extractDocumentInfoFromText(text) {
+  const client = getOpenAIClient()
+
+  if (!client) {
+    throw new Error('OpenAI API key not configured. Set VITE_OPENAI_API_KEY in .env and restart the dev server.')
+  }
+
+  if (!text || text.trim().length < 20) {
+    throw new Error('Document text is empty or unreadable. Try a text-based file or an image.')
   }
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-vision-preview',
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Analyze this document (bill, invoice, receipt, or any document) and extract the following information in JSON format:
-                {
-                  "billName": "The name/title of the bill or service (e.g., 'Electricity Bill', 'Credit Card Statement', 'Insurance Premium')",
-                  "deadlineDate": "The due date or deadline date in YYYY-MM-DD format (this is the actual deadline from the document)",
-                  "time": "Time in HH:MM format if available, otherwise null",
-                  "amount": "Any monetary amount mentioned (e.g., '$150.00')",
-                  "description": "A brief description of what this document is about"
-                }
-                
-                IMPORTANT: 
-                - Extract the actual deadline/due date from the document (not a reminder date)
-                - Look for terms like "Due Date", "Payment Due", "Deadline", "Pay By"
-                - If a date is not explicitly mentioned, try to infer it from context (e.g., "due in 30 days" from today's date)
-                - Today's date is ${new Date().toISOString().split('T')[0]}`
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${mimeType};base64,${base64Image}`
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 500
-      })
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'user',
+          content: `Extract bill/reminder details from this document text and return ONLY valid JSON:
+{
+  "billName": "The name/title of the bill or service",
+  "deadlineDate": "The due date or deadline date in YYYY-MM-DD format",
+  "time": "Time in HH:MM format if available, otherwise null",
+  "amount": "Any monetary amount mentioned (e.g., '$150.00')",
+  "description": "A brief description of what this document is about"
+}
+
+IMPORTANT:
+- Extract the actual deadline/due date from the document (not a reminder date)
+- Look for terms like "Due Date", "Payment Due", "Deadline", "Pay By"
+- If a date is not explicitly mentioned, try to infer it from context
+- Today's date is ${new Date().toISOString().split('T')[0]}
+
+Document text:
+${text}`
+        }
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 500,
+      temperature: 0.2
     })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error?.message || 'Failed to process document')
-    }
+    const content = response.choices?.[0]?.message?.content || ''
+    const extracted = JSON.parse(content)
 
-    const data = await response.json()
-    const content = data.choices[0].message.content
+    return {
+      billName: extracted.billName || extracted.title || 'Document Reminder',
+      deadlineDate: extracted.deadlineDate || extracted.date || formatDateForInput(new Date()),
+      time: extracted.time || null,
+      amount: extracted.amount || null,
+      description: extracted.description || ''
+    }
+  } catch (error) {
+    console.error('AI text extraction error:', error)
+    throw new Error(error.message || 'Failed to process document text')
+  }
+}
+
+export async function extractDocumentInfo(base64Image, mimeType) {
+  const client = getOpenAIClient()
+
+  if (!client) {
+    throw new Error('OpenAI API key not configured. Set VITE_OPENAI_API_KEY in .env and restart the dev server.')
+  }
+
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Analyze this document (bill, invoice, receipt, or any document) and extract the following information in JSON format:
+              {
+                "billName": "The name/title of the bill or service (e.g., 'Electricity Bill', 'Credit Card Statement', 'Insurance Premium')",
+                "deadlineDate": "The due date or deadline date in YYYY-MM-DD format (this is the actual deadline from the document)",
+                "time": "Time in HH:MM format if available, otherwise null",
+                "amount": "Any monetary amount mentioned (e.g., '$150.00')",
+                "description": "A brief description of what this document is about"
+              }
+
+              IMPORTANT:
+              - Extract the actual deadline/due date from the document (not a reminder date)
+              - Look for terms like "Due Date", "Payment Due", "Deadline", "Pay By"
+              - If a date is not explicitly mentioned, try to infer it from context (e.g., "due in 30 days" from today's date)
+              - Today's date is ${new Date().toISOString().split('T')[0]}
+              - Return ONLY valid JSON`
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${mimeType};base64,${base64Image}`
+              }
+            }
+          ]
+        }
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 500,
+      temperature: 0.2
+    })
+
+    const content = response.choices?.[0]?.message?.content || ''
     
     // Try to parse JSON from the response
     try {
-      // Extract JSON from markdown code blocks if present
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || 
-                       content.match(/```\s*([\s\S]*?)\s*```/)
-      const jsonString = jsonMatch ? jsonMatch[1] : content
-      const extracted = JSON.parse(jsonString)
+      const extracted = JSON.parse(content)
       
       // Validate and format the response
       return {
@@ -86,13 +128,11 @@ export async function extractDocumentInfo(base64Image, mimeType) {
         description: extracted.description || ''
       }
     } catch (parseError) {
-      // If JSON parsing fails, try to extract information using regex
-      return parseTextResponse(content)
+      throw new Error('OpenAI response was not valid JSON. Please try again.')
     }
   } catch (error) {
     console.error('AI extraction error:', error)
-    // Fallback to mock extraction on error
-    return mockExtractDocumentInfo()
+    throw new Error(error.message || 'Failed to process document')
   }
 }
 

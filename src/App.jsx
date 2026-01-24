@@ -13,6 +13,7 @@ function App() {
   const [reminders, setReminders] = useState([])
   const [notificationStatus, setNotificationStatus] = useState('default')
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
+  const [notificationMessage, setNotificationMessage] = useState('')
 
   // Load reminders from localStorage on mount
   useEffect(() => {
@@ -68,10 +69,21 @@ function App() {
   }
 
   const toggleNotifications = async () => {
+    if (notificationStatus === 'unsupported') {
+      setNotificationMessage('Notifications are not supported in this browser.')
+      return
+    }
+
+    if (notificationStatus === 'denied') {
+      setNotificationMessage('Notifications are blocked in your browser settings. Please allow them for this site and refresh.')
+      return
+    }
+
     if (notificationsEnabled) {
       setNotificationsEnabled(false)
       localStorage.setItem('rakall-notifications-enabled', 'false')
       clearAllScheduledNotifications()
+      setNotificationMessage('Notifications paused.')
       return
     }
 
@@ -80,43 +92,73 @@ function App() {
     if (permission === 'granted') {
       setNotificationsEnabled(true)
       localStorage.setItem('rakall-notifications-enabled', 'true')
+      setNotificationMessage('Notifications enabled.')
+    } else if (permission === 'denied') {
+      setNotificationMessage('Notifications were blocked. Please allow them in browser settings.')
     }
   }
 
   return (
     <div className="app">
-      <header className="app-header">
-        <img src="/logo.png" alt="RAKALL Logo" className="app-logo" />
-        <h1>RAKALL</h1>
-        <p>AI-Powered Reminder App</p>
-        <div className="notification-controls">
-          <span className={`notification-status ${notificationStatus}`}>
-            {notificationStatus === 'granted' && (notificationsEnabled ? 'Notifications enabled' : 'Notifications paused')}
-            {notificationStatus === 'denied' && 'Notifications blocked'}
-            {notificationStatus === 'default' && 'Notifications off'}
-            {notificationStatus === 'unsupported' && 'Notifications not supported'}
-          </span>
-          <button
-            className="notification-button"
-            onClick={toggleNotifications}
-            disabled={notificationStatus === 'unsupported'}
-          >
-            {notificationsEnabled ? 'Block Notifications' : 'Enable Notifications'}
-          </button>
+      <div className="app-shell">
+        <aside className="app-menu">
+          <div className="menu-brand">
+            <img src="/logo.png" alt="RAKALL Logo" className="menu-logo" />
+            <div>
+              <h2>RAKALL</h2>
+              <p>AI Reminder</p>
+            </div>
+          </div>
+          <nav className="menu-nav">
+            <a href="#dashboard" className="menu-link">Dashboard</a>
+            <a href="#scanner" className="menu-link">AI Scanner</a>
+            <a href="#reminders" className="menu-link">Reminders</a>
+            <a href="#settings" className="menu-link">Settings</a>
+          </nav>
+        </aside>
+
+        <div className="app-content">
+          <header id="dashboard" className="app-header">
+            <img src="/logo.png" alt="RAKALL Logo" className="app-logo" />
+            <h1>RAKALL</h1>
+            <p>AI-Powered Reminder App</p>
+          </header>
+          
+          <main className="app-main">
+            <section id="scanner" className="app-section">
+              <DocumentScanner onReminderCreated={addReminder} />
+            </section>
+            <section id="reminders" className="app-section">
+              <ReminderList 
+                reminders={reminders}
+                onDelete={deleteReminder}
+                onUpdate={updateReminder}
+              />
+            </section>
+            <section id="settings" className="app-section app-settings">
+              <h3>Settings</h3>
+              <div className="notification-controls">
+                <button
+                  className="notification-button"
+                  onClick={toggleNotifications}
+                >
+                  {notificationStatus === 'denied' && 'Notifications blocked'}
+                  {notificationStatus === 'unsupported' && 'Notifications not supported'}
+                  {notificationStatus === 'granted' && (notificationsEnabled ? 'Block Notifications' : 'Enable Notifications')}
+                  {notificationStatus === 'default' && 'Enable Notifications'}
+                </button>
+              </div>
+              {notificationMessage && (
+                <p className="notification-message">{notificationMessage}</p>
+              )}
+              <p className="notification-hint">
+                Notifications work while the app is open in your browser.
+              </p>
+              <p>Coming soon: reminders sync, advanced schedules, and themes.</p>
+            </section>
+          </main>
         </div>
-        <p className="notification-hint">
-          Notifications work while the app is open in your browser.
-        </p>
-      </header>
-      
-      <main className="app-main">
-        <DocumentScanner onReminderCreated={addReminder} />
-        <ReminderList 
-          reminders={reminders}
-          onDelete={deleteReminder}
-          onUpdate={updateReminder}
-        />
-      </main>
+      </div>
     </div>
   )
 }

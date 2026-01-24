@@ -49,3 +49,6 @@ lerna-debug.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Local nested repo
+rakall-repo/
