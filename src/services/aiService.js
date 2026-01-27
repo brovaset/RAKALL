@@ -63,7 +63,10 @@ ${text}`
     }
   } catch (error) {
     console.error('AI text extraction error:', error)
-    throw new Error(error.message || 'Failed to process document text')
+    if (shouldUseMock(error)) {
+      return mockExtractDocumentInfo()
+    }
+    throw new Error(formatOpenAIError(error, 'Failed to process document text'))
   }
 }
 
@@ -132,8 +135,37 @@ export async function extractDocumentInfo(base64Image, mimeType) {
     }
   } catch (error) {
     console.error('AI extraction error:', error)
-    throw new Error(error.message || 'Failed to process document')
+    if (shouldUseMock(error)) {
+      return mockExtractDocumentInfo()
+    }
+    throw new Error(formatOpenAIError(error, 'Failed to process document'))
   }
+}
+
+function shouldUseMock(error) {
+  const status = error?.status || error?.response?.status
+  const message = error?.message || ''
+
+  return status === 429 || status === 503 || /quota|overloaded/i.test(message)
+}
+
+function formatOpenAIError(error, fallbackMessage) {
+  const status = error?.status || error?.response?.status
+  const message = error?.message || ''
+
+  if (status === 401 || /invalid_api_key/i.test(message)) {
+    return 'OpenAI API key is invalid. Update VITE_OPENAI_API_KEY and restart the dev server.'
+  }
+
+  if (status === 429 || /quota/i.test(message)) {
+    return 'OpenAI quota exceeded. Check your plan and billing, or try again later.'
+  }
+
+  if (status === 503 || /overloaded/i.test(message)) {
+    return 'OpenAI is temporarily overloaded. Please try again in a moment.'
+  }
+
+  return message || fallbackMessage
 }
 
 function parseTextResponse(text) {
