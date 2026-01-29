@@ -1,101 +1,142 @@
 /**
  * Text Extraction Service for extracting tasks and reminders from unstructured text
  * 
- * This service uses OpenAI's GPT API to extract tasks, intents, and entities
+ * This service uses Groq to extract tasks, intents, and entities
  * from unstructured text like emails, notes, or web articles.
  * 
- * Note: Uses the same OpenAI API key as document extraction
+ * Note: Uses the same Groq API key as document extraction
  */
 
-import { getOpenAIClient } from './openaiClient'
+import { createGroqChatCompletion } from './groqClient'
 
 export async function extractTasksFromText(text) {
-  const client = getOpenAIClient()
-
-  if (!client) {
-    throw new Error('OpenAI API key not configured. Set VITE_OPENAI_API_KEY in .env and restart the dev server.')
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY
+  if (!apiKey) {
+    throw new Error('Groq API key not configured. Set VITE_GROQ_API_KEY in .env and restart the dev server.')
   }
 
   try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are a task extraction assistant. Analyze the given text and extract actionable tasks, reminders, or commitments. 
-          Identify:
-          1. Intent/Task: What needs to be done (e.g., "Call John", "Pay bill", "Schedule meeting")
-          2. Entities: People, places, or things mentioned
-          3. Dates/Times: When the task should be done (extract relative dates like "Monday", "next week", "tomorrow" and convert to actual dates)
-          4. Context: Any additional relevant information
-          
-          Today's date is ${new Date().toISOString().split('T')[0]}.
-          Return ONLY valid JSON in this shape:
-          { "tasks": [ { "title": "...", "date": "YYYY-MM-DD", "time": "HH:MM or null", "description": "...", "confidence": 0-1, "entities": [] } ] }`
-        },
-        {
-          role: 'user',
-          content: `Extract all tasks and reminders from this text:\n\n${text}`
-        }
-      ],
-      response_format: { type: 'json_object' },
+    const prompt = `You are a task extraction assistant. Extract actionable tasks, reminders, or commitments.
+Rules:
+- Return ONLY JSON (no markdown, no extra text)
+- Output schema: { "tasks": [ ... ] }
+- Each task must have: taskName, task, date (YYYY-MM-DD), time (HH:MM or null), price (number or null)
+- Resolve relative dates like "tomorrow", "next week", "Monday" using today's date
+- If a date is missing, set it to today's date
+- If time is missing, set it to null
+- If price/amount is missing, set it to null
+
+Today's date is ${new Date().toISOString().split('T')[0]}.
+
+Examples:
+Input: "I should call John tomorrow at 2 PM about the project."
+Output: {"tasks":[{"taskName":"Call John","task":"Call John about the project","date":"${new Date(Date.now() + 86400000).toISOString().split('T')[0]}","time":"14:00","price":null}]}
+
+Input: "Pay the electricity bill next week."
+Output: {"tasks":[{"taskName":"Pay electricity bill","task":"Pay the electricity bill","date":"${new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]}","time":null,"price":null}]}
+
+Input: "Pay rent of $1200 on Feb 1."
+Output: {"tasks":[{"taskName":"Pay rent","task":"Pay rent","date":"2025-02-01","time":null,"price":1200}]}
+
+Extract all tasks and reminders from this text:
+${text}`
+
+    const content = await createGroqChatCompletion({
+      model: 'llama-3.1-8b-instant',
+      messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
       max_tokens: 1000
     })
-
-    const content = response.choices?.[0]?.message?.content || ''
     
     // Try to parse JSON from the response
     try {
-      const extracted = JSON.parse(content)
-      const tasks = Array.isArray(extracted?.tasks) ? extracted.tasks : []
+      const extracted = parseJsonFromText(content)
+      const rawTasks = Array.isArray(extracted)
+        ? extracted
+        : Array.isArray(extracted?.tasks)
+          ? extracted.tasks
+          : Array.isArray(extracted?.reminders)
+            ? extracted.reminders
+            : []
       
       // Validate and format the response
-      return tasks.map(task => ({
-        title: task.title || task.task || 'Untitled Task',
-        date: task.date || formatDateForInput(new Date()),
-        time: task.time || null,
-        description: task.description || task.context || '',
-        confidence: task.confidence || 0.8,
-        entities: task.entities || [],
-        sourceText: text.substring(0, 100) // Store snippet of source text
-      }))
+      return rawTasks.map(task => {
+        const price = normalizePrice(task.price ?? task.amount ?? task.cost)
+        const taskName = task.taskName || task.title || task.task || 'Untitled Task'
+        const taskText = task.task || task.description || task.context || taskName
+        const priceLabel = typeof price === 'number' ? `Price: $${price}` : null
+        const description = [taskText, priceLabel].filter(Boolean).join(' • ')
+
+        return {
+          title: taskName,
+          date: normalizeDate(task.date),
+          time: normalizeTime(task.time),
+          description,
+          confidence: typeof task.confidence === 'number' ? task.confidence : 0.8,
+          entities: Array.isArray(task.entities) ? task.entities : [],
+          sourceText: text.substring(0, 100),
+          price
+        }
+      })
     } catch (parseError) {
-      throw new Error('OpenAI response was not valid JSON. Please try again.')
+      throw new Error('Groq response was not valid JSON. Please try again.')
     }
   } catch (error) {
     console.error('Text extraction error:', error)
     if (shouldUseMock(error)) {
-      return mockExtractTasksFromText()
+      throw new Error(formatGroqError(error, 'Groq quota exceeded. Please try again later.'))
     }
-    throw new Error(formatOpenAIError(error, 'Failed to process text'))
+    throw new Error(formatGroqError(error, 'Failed to process text'))
   }
 }
 
 function shouldUseMock(error) {
+  if (!isMockEnabled()) {
+    return false
+  }
   const status = error?.status || error?.response?.status
   const message = error?.message || ''
 
-  return status === 429 || status === 503 || /quota|overloaded/i.test(message)
+  return status === 429 || status === 503 || /quota|overloaded|resource_exhausted|rate/i.test(message)
 }
 
-function formatOpenAIError(error, fallbackMessage) {
+function formatGroqError(error, fallbackMessage) {
   const status = error?.status || error?.response?.status
   const message = error?.message || ''
 
   if (status === 401 || /invalid_api_key/i.test(message)) {
-    return 'OpenAI API key is invalid. Update VITE_OPENAI_API_KEY and restart the dev server.'
+    return 'Groq API key is invalid. Update VITE_GROQ_API_KEY and restart the dev server.'
   }
 
-  if (status === 429 || /quota/i.test(message)) {
-    return 'OpenAI quota exceeded. Check your plan and billing, or try again later.'
+  if (status === 429 || /quota|resource_exhausted|rate|rate_limit/i.test(message)) {
+    return 'Groq quota exceeded. Check your plan and billing, or try again later.'
   }
 
   if (status === 503 || /overloaded/i.test(message)) {
-    return 'OpenAI is temporarily overloaded. Please try again in a moment.'
+    return 'Groq is temporarily overloaded. Please try again in a moment.'
   }
 
   return message || fallbackMessage
+}
+
+function isMockEnabled() {
+  return import.meta.env.VITE_ALLOW_MOCK_AI === 'true'
+}
+
+function parseJsonFromText(content) {
+  if (!content) {
+    throw new Error('Groq response was empty. Please try again.')
+  }
+
+  const jsonBlockMatch = content.match(/```json\\s*([\\s\\S]*?)\\s*```/i)
+    || content.match(/```\\s*([\\s\\S]*?)\\s*```/i)
+  const raw = jsonBlockMatch ? jsonBlockMatch[1] : content
+
+  const jsonStart = raw.indexOf('{')
+  const jsonEnd = raw.lastIndexOf('}')
+  const jsonString = jsonStart >= 0 && jsonEnd >= 0 ? raw.slice(jsonStart, jsonEnd + 1) : raw
+
+  return JSON.parse(jsonString)
 }
 
 function parseTextForTasks(text) {
@@ -171,6 +212,33 @@ function parseTextForTasks(text) {
   })
   
   return tasks.length > 0 ? tasks : mockExtractTasksFromText()
+}
+
+function normalizeDate(value) {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value
+  }
+  return formatDateForInput(new Date())
+}
+
+function normalizeTime(value) {
+  if (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value)) {
+    return value
+  }
+  return null
+}
+
+function normalizePrice(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+  if (typeof value === 'string') {
+    const match = value.replace(/,/g, '').match(/(\d+(\.\d+)?)/)
+    if (match) {
+      return Number(match[1])
+    }
+  }
+  return null
 }
 
 function parseRelativeDate(dateString) {

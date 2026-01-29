@@ -227,6 +227,67 @@
   color: var(--text-200);
 }
 
+.oauth-section {
+  margin-bottom: 18px;
+  padding: 14px;
+  background: rgba(15, 27, 45, 0.6);
+  border: 1px solid rgba(43, 90, 163, 0.35);
+  border-radius: 12px;
+}
+
+.oauth-title {
+  margin: 0 0 10px;
+  color: var(--text-100);
+  font-weight: 600;
+}
+
+.oauth-button {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.oauth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.oauth-button.secondary {
+  background: transparent;
+  border-color: rgba(255, 107, 53, 0.5);
+  color: var(--text-200);
+}
+
+.oauth-user {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.oauth-name {
+  margin: 0;
+  color: var(--text-100);
+  font-weight: 600;
+}
+
+.oauth-email {
+  margin: 4px 0 0;
+  color: var(--text-300);
+  font-size: 0.9rem;
+}
+
+.oauth-error {
+  margin-top: 8px;
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+
 .app-main {
   max-width: 1400px;
   margin: 0 auto;

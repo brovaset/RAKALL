@@ -7,6 +7,10 @@ import {
   scheduleNotifications,
   clearAllScheduledNotifications
 } from './services/notificationService'
+import {
+  requestGoogleAccessToken,
+  fetchGoogleUserProfile
+} from './services/googleOAuthService'
 import './App.css'
 
 function App() {
@@ -14,6 +18,9 @@ function App() {
   const [notificationStatus, setNotificationStatus] = useState('default')
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState('')
+  const [oauthUser, setOauthUser] = useState(null)
+  const [oauthStatus, setOauthStatus] = useState('signed-out')
+  const [oauthError, setOauthError] = useState('')
 
   // Load reminders from localStorage on mount
   useEffect(() => {
@@ -24,6 +31,11 @@ function App() {
     const savedNotifEnabled = localStorage.getItem('rakall-notifications-enabled')
     if (savedNotifEnabled) {
       setNotificationsEnabled(savedNotifEnabled === 'true')
+    }
+    const savedUser = localStorage.getItem('rakall-oauth-user')
+    if (savedUser) {
+      setOauthUser(JSON.parse(savedUser))
+      setOauthStatus('signed-in')
     }
   }, [])
 
@@ -98,6 +110,31 @@ function App() {
     }
   }
 
+  const handleGoogleSignIn = async () => {
+    setOauthError('')
+    setOauthStatus('loading')
+
+    try {
+      const tokenResponse = await requestGoogleAccessToken({
+        scope: 'openid email profile'
+      })
+      const profile = await fetchGoogleUserProfile(tokenResponse.access_token)
+      setOauthUser(profile)
+      setOauthStatus('signed-in')
+      localStorage.setItem('rakall-oauth-user', JSON.stringify(profile))
+    } catch (error) {
+      setOauthStatus('signed-out')
+      setOauthError(error.message || 'Google sign-in failed.')
+    }
+  }
+
+  const handleGoogleSignOut = () => {
+    setOauthUser(null)
+    setOauthStatus('signed-out')
+    setOauthError('')
+    localStorage.removeItem('rakall-oauth-user')
+  }
+
   return (
     <div className="app">
       <div className="app-shell">
@@ -137,6 +174,29 @@ function App() {
             </section>
             <section id="settings" className="app-section app-settings">
               <h3>Settings</h3>
+              <div className="oauth-section">
+                <p className="oauth-title">Google Sign-in</p>
+                {oauthUser ? (
+                  <div className="oauth-user">
+                    <div>
+                      <p className="oauth-name">{oauthUser.name || 'Signed in'}</p>
+                      <p className="oauth-email">{oauthUser.email || ''}</p>
+                    </div>
+                    <button className="oauth-button secondary" onClick={handleGoogleSignOut}>
+                      Sign out
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="oauth-button"
+                    onClick={handleGoogleSignIn}
+                    disabled={oauthStatus === 'loading'}
+                  >
+                    {oauthStatus === 'loading' ? 'Connecting...' : 'Sign in with Google'}
+                  </button>
+                )}
+                {oauthError && <p className="oauth-error">{oauthError}</p>}
+              </div>
               <div className="notification-controls">
                 <button
                   className="notification-button"

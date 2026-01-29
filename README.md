@@ -17,7 +17,8 @@ A modern reminder application that uses AI to extract information from documents
 
 - Node.js (v16 or higher)
 - npm or yarn
-- OpenAI API key (optional - app works with mock data if not provided)
+- Groq API key (optional - app works with mock data if not provided)
+- Google OAuth Client ID (optional - enables Google sign-in)
 
 ### Installation
 
@@ -34,7 +35,8 @@ npm install
 
 3. Create a `.env` file in the root directory:
 ```env
-VITE_OPENAI_API_KEY=your_openai_api_key_here
+VITE_GROQ_API_KEY=your_groq_api_key_here
+VITE_OAUTH_CLIENT_ID=your_google_oauth_client_id_here
 ```
 
 4. Start the development server:
@@ -60,11 +62,18 @@ npm run dev
 4. Review suggested reminders
 5. Edit if needed, then approve to add to your reminders
 
+### Google Sign-In
+1. Create a Google OAuth Client ID (Web application)
+2. Add this Authorized redirect URI:
+   - `http://localhost:3000/auth/callback`
+3. Set `VITE_OAUTH_CLIENT_ID` in `.env`
+4. Restart the dev server and use the Google Sign-in button in Settings
+
 ## Tech Stack
 
 - React 18
 - Vite
-- OpenAI API (GPT-4 Vision & GPT-4)
+- Groq
 - date-fns
 - Local Storage
 

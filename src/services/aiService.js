@@ -1,20 +1,19 @@
 /**
  * AI Service for extracting information from documents
  *
- * This service uses OpenAI's GPT-4 Vision API to extract dates, amounts,
+ * This service uses Groq to extract dates, amounts,
  * and other relevant information from uploaded documents.
  *
- * Note: You'll need to set up an OpenAI API key in your environment variables.
- * Create a .env file with: VITE_OPENAI_API_KEY=your_api_key_here
+ * Note: You'll need to set up a Groq API key in your environment variables.
+ * Create a .env file with: VITE_GROQ_API_KEY=your_api_key_here
  */
 
-import { getOpenAIClient } from './openaiClient'
+import { createGroqChatCompletion } from './groqClient'
 
 export async function extractDocumentInfoFromText(text) {
-  const client = getOpenAIClient()
-
-  if (!client) {
-    throw new Error('OpenAI API key not configured. Set VITE_OPENAI_API_KEY in .env and restart the dev server.')
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY
+  if (!apiKey) {
+    throw new Error('Groq API key not configured. Set VITE_GROQ_API_KEY in .env and restart the dev server.')
   }
 
   if (!text || text.trim().length < 20) {
@@ -22,18 +21,21 @@ export async function extractDocumentInfoFromText(text) {
   }
 
   try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'user',
-          content: `Extract bill/reminder details from this document text and return ONLY valid JSON:
+    const prompt = `Extract task details from this document text and return ONLY valid JSON.
+Rules:
+- Return a single JSON object only (no markdown, no extra text)
+- Use YYYY-MM-DD for dates
+- If you cannot find a value, set it to null (except billName which should be a short title)
+- Prefer the actual due date over any reminder dates
+- Do NOT guess or infer values that are not explicitly stated
+
+JSON schema:
 {
-  "billName": "The name/title of the bill or service",
+  "billName": "The task name or bill/service name",
   "deadlineDate": "The due date or deadline date in YYYY-MM-DD format",
   "time": "Time in HH:MM format if available, otherwise null",
   "amount": "Any monetary amount mentioned (e.g., '$150.00')",
-  "description": "A brief description of what this document is about"
+  "description": "A brief description of the task or document"
 }
 
 IMPORTANT:
@@ -44,55 +46,60 @@ IMPORTANT:
 
 Document text:
 ${text}`
-        }
-      ],
-      response_format: { type: 'json_object' },
-      max_tokens: 500,
-      temperature: 0.2
+
+    const content = await createGroqChatCompletion({
+      model: 'llama-3.1-8b-instant',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 500
     })
+    const extracted = parseJsonFromText(content)
+    const fallback = parseTextResponse(text)
 
-    const content = response.choices?.[0]?.message?.content || ''
-    const extracted = JSON.parse(content)
-
-    return {
-      billName: extracted.billName || extracted.title || 'Document Reminder',
-      deadlineDate: extracted.deadlineDate || extracted.date || formatDateForInput(new Date()),
-      time: extracted.time || null,
-      amount: extracted.amount || null,
-      description: extracted.description || ''
-    }
+    return normalizeDocumentInfo({
+      billName: extracted.billName || extracted.title || fallback.billName || 'Document Reminder',
+      deadlineDate: extracted.deadlineDate || extracted.date || fallback.deadlineDate || null,
+      time: extracted.time || fallback.time || null,
+      amount: extracted.amount || fallback.amount || null,
+      description: extracted.description || fallback.description || ''
+    })
   } catch (error) {
     console.error('AI text extraction error:', error)
     if (shouldUseMock(error)) {
-      return mockExtractDocumentInfo()
+      throw new Error(formatGroqError(error, 'Groq quota exceeded. Please try again later.'))
     }
-    throw new Error(formatOpenAIError(error, 'Failed to process document text'))
+    throw new Error(formatGroqError(error, 'Failed to process document text'))
   }
 }
 
 export async function extractDocumentInfo(base64Image, mimeType) {
-  const client = getOpenAIClient()
+  const apiKey = import.meta.env.VITE_GROQ_API_KEY
+  if (!apiKey) {
+    throw new Error('Groq API key not configured. Set VITE_GROQ_API_KEY in .env and restart the dev server.')
+  }
 
-  if (!client) {
-    throw new Error('OpenAI API key not configured. Set VITE_OPENAI_API_KEY in .env and restart the dev server.')
+  if (mimeType?.startsWith('image/')) {
+    throw new Error('Groq does not support image input. Upload a PDF/DOCX or paste text instead.')
   }
 
   try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Analyze this document (bill, invoice, receipt, or any document) and extract the following information in JSON format:
+    const prompt = `Analyze this document (bill, invoice, receipt, or any document) and extract the following information in JSON format.
+Rules:
+- Return a single JSON object only (no markdown, no extra text)
+- Use YYYY-MM-DD for dates
+- If you cannot find a value, set it to null (except billName which should be a short title)
+- Prefer the actual due date over any reminder dates
+- Do NOT guess or infer values that are not explicitly stated
+- If multiple amounts exist, choose the total due amount
+ - If the document does not include a due date or amount, return null for those fields
+
+JSON schema:
               {
-                "billName": "The name/title of the bill or service (e.g., 'Electricity Bill', 'Credit Card Statement', 'Insurance Premium')",
+                "billName": "The task name or bill/service name (e.g., 'Pay Electricity Bill')",
                 "deadlineDate": "The due date or deadline date in YYYY-MM-DD format (this is the actual deadline from the document)",
                 "time": "Time in HH:MM format if available, otherwise null",
                 "amount": "Any monetary amount mentioned (e.g., '$150.00')",
-                "description": "A brief description of what this document is about"
+                "description": "A brief description of the task or document"
               }
 
               IMPORTANT:
@@ -101,71 +108,78 @@ export async function extractDocumentInfo(base64Image, mimeType) {
               - If a date is not explicitly mentioned, try to infer it from context (e.g., "due in 30 days" from today's date)
               - Today's date is ${new Date().toISOString().split('T')[0]}
               - Return ONLY valid JSON`
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${mimeType};base64,${base64Image}`
-              }
-            }
-          ]
-        }
-      ],
-      response_format: { type: 'json_object' },
-      max_tokens: 500,
-      temperature: 0.2
-    })
 
-    const content = response.choices?.[0]?.message?.content || ''
-    
-    // Try to parse JSON from the response
-    try {
-      const extracted = JSON.parse(content)
-      
-      // Validate and format the response
-      return {
-        billName: extracted.billName || extracted.title || 'Document Reminder',
-        deadlineDate: extracted.deadlineDate || extracted.date || formatDateForInput(new Date()),
-        time: extracted.time || null,
-        amount: extracted.amount || null,
-        description: extracted.description || ''
-      }
-    } catch (parseError) {
-      throw new Error('OpenAI response was not valid JSON. Please try again.')
-    }
+    const content = await createGroqChatCompletion({
+      model: 'llama-3.1-8b-instant',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 500
+    })
+    const extracted = parseJsonFromText(content)
+
+    return normalizeDocumentInfo({
+      billName: extracted.billName || extracted.title || 'Document Reminder',
+      deadlineDate: extracted.deadlineDate || extracted.date || null,
+      time: extracted.time || null,
+      amount: extracted.amount || null,
+      description: extracted.description || ''
+    })
   } catch (error) {
     console.error('AI extraction error:', error)
     if (shouldUseMock(error)) {
-      return mockExtractDocumentInfo()
+      throw new Error(formatGroqError(error, 'Groq quota exceeded. Please try again later.'))
     }
-    throw new Error(formatOpenAIError(error, 'Failed to process document'))
+    throw new Error(formatGroqError(error, 'Failed to process document'))
   }
 }
 
 function shouldUseMock(error) {
+  if (!isMockEnabled()) {
+    return false
+  }
   const status = error?.status || error?.response?.status
   const message = error?.message || ''
 
-  return status === 429 || status === 503 || /quota|overloaded/i.test(message)
+  return status === 429 || status === 503 || /quota|overloaded|resource_exhausted|rate/i.test(message)
 }
 
-function formatOpenAIError(error, fallbackMessage) {
+function formatGroqError(error, fallbackMessage) {
   const status = error?.status || error?.response?.status
   const message = error?.message || ''
 
   if (status === 401 || /invalid_api_key/i.test(message)) {
-    return 'OpenAI API key is invalid. Update VITE_OPENAI_API_KEY and restart the dev server.'
+    return 'Groq API key is invalid. Update VITE_GROQ_API_KEY and restart the dev server.'
   }
 
-  if (status === 429 || /quota/i.test(message)) {
-    return 'OpenAI quota exceeded. Check your plan and billing, or try again later.'
+  if (status === 429 || /quota|resource_exhausted|rate|rate_limit/i.test(message)) {
+    return 'Groq quota exceeded. Check your plan and billing, or try again later.'
   }
 
   if (status === 503 || /overloaded/i.test(message)) {
-    return 'OpenAI is temporarily overloaded. Please try again in a moment.'
+    return 'Groq is temporarily overloaded. Please try again in a moment.'
   }
 
   return message || fallbackMessage
+}
+
+function isMockEnabled() {
+  return import.meta.env.VITE_ALLOW_MOCK_AI === 'true'
+}
+
+function parseJsonFromText(content) {
+  if (!content) {
+    throw new Error('Groq response was empty. Please try again.')
+  }
+
+  const jsonBlockMatch = content.match(/```json\\s*([\\s\\S]*?)\\s*```/i)
+    || content.match(/```\\s*([\\s\\S]*?)\\s*```/i)
+  const raw = jsonBlockMatch ? jsonBlockMatch[1] : content
+
+  const jsonStart = raw.indexOf('{')
+  const jsonEnd = raw.lastIndexOf('}')
+  const jsonString = jsonStart >= 0 && jsonEnd >= 0 ? raw.slice(jsonStart, jsonEnd + 1) : raw
+
+  return JSON.parse(jsonString)
 }
 
 function parseTextResponse(text) {
@@ -181,6 +195,43 @@ function parseTextResponse(text) {
     amount: amountMatch ? amountMatch[0] : null,
     description: text.substring(0, 200)
   }
+}
+
+function normalizeDocumentInfo(info) {
+  return {
+    billName: info.billName || 'Document Reminder',
+    deadlineDate: normalizeDate(info.deadlineDate),
+    time: normalizeTime(info.time),
+    amount: normalizeAmount(info.amount),
+    description: info.description || ''
+  }
+}
+
+function normalizeDate(value) {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value
+  }
+  return null
+}
+
+function normalizeTime(value) {
+  if (typeof value === 'string' && /^\d{2}:\d{2}$/.test(value)) {
+    return value
+  }
+  return null
+}
+
+function normalizeAmount(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+  if (typeof value === 'string') {
+    const match = value.replace(/,/g, '').match(/(\d+(\.\d+)?)/)
+    if (match) {
+      return match[1]
+    }
+  }
+  return null
 }
 
 function formatDate(dateString) {
